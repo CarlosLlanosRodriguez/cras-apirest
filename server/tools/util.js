@@ -85,7 +85,7 @@ async function sendEmail(correo, id, host, protocol) {
 
     const { err, response } = await smtpTransport.sendMail(mailOptions);
     if (err) {
-        return false;
+        return err;
     } else {
         return true;
     }

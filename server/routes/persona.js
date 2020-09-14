@@ -81,7 +81,7 @@ app.post('/persona', function(req, res) {
                         ok: true,
                         persona: perdb,
                     })
-                }).catch((est) => {
+                }).catch((err) => {
                     Dato.findOneAndRemove({ _id: datodb._id }, (err, eliminado) => {
                         if (err) {
                             console.log("Error al eliminar");
@@ -100,6 +100,7 @@ app.post('/persona', function(req, res) {
                     res.json({
                         ok: false,
                         error: 'Correo electronico invalido',
+                        err
                     })
                 })
             });
