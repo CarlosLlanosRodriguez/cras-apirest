@@ -9,15 +9,20 @@ const Dato = require('../models/dato_model');
 const Administrador = require('../models/Administrador_model');
 const Usuario = require('../models/Usuario_model');
 const { subirImagen, borrarImagen, sendEmail } = require('../tools/util');
+const { verificaToken } = require('../middlewares/autenticacion');
 
 const app = express();
 
 app.use(fileUpload());
 
 
-app.get('/persona', function(req, res) {
-    persona.find({});
-    res.json('get usuario desarrollo')
+app.get('/persona', verificaToken, (req, res) => {
+    Persona.find((err, doc) => {
+        res.json({
+            ok: true,
+            lista: doc
+        })
+    });
 })
 
 app.post('/persona', function(req, res) {
@@ -131,7 +136,7 @@ app.get('/verify', function(req, res) {
     });
 });
 
-app.put('/persona/:id', function(req, res) {
+app.put('/persona/:id', verificaToken, (req, res) => {
     let id = req.params.id;
     let body = _.pick(req.body, ['nombre', 'ap', 'am' /* , 'foto' */ , 'ci', 'direccion', 'email']);
 
