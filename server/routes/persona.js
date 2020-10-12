@@ -80,8 +80,13 @@ app.post('/persona', function(req, res) {
                     });
                 }
 
+                res.json({
+                    ok: true,
+                    persona: perdb,
+                })
+
                 /* envia email para verificar */
-                sendEmail(body.email, perdb._id, req.get('host'), req.protocol).then((est) => {
+                /* sendEmail(body.email, perdb._id, req.get('host'), req.protocol).then((est) => {
                     res.json({
                         ok: true,
                         persona: perdb,
@@ -107,7 +112,7 @@ app.post('/persona', function(req, res) {
                         error: 'Correo electronico invalido',
                         err
                     })
-                })
+                }) */
             });
         });
     }).catch((error) => {
