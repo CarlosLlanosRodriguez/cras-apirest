@@ -65,10 +65,10 @@ let borrarImagen = (urlImage) => {
 
 /* enviar email */
 var smtpTransport = nodemailer.createTransport({
-    service: "gmail",
+    service: 'gmail',
     auth: {
-        user: "llanoscarlos649@gmail.com",
-        pass: "clr*1993"
+        user: 'llanoscarlos649@gmail.com',
+        pass: 'clr*1993'
     }
 });
 
