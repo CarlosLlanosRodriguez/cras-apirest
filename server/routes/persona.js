@@ -3,12 +3,13 @@ const mongoose = require('mongoose');
 const bcrypt = require('bcrypt');
 const _ = require('underscore');
 const fileUpload = require('express-fileupload');
+const jwt = require('jsonwebtoken')
 
 const Persona = require('../models/persona_model');
 const Dato = require('../models/dato_model');
 const Administrador = require('../models/Administrador_model');
 const Usuario = require('../models/Usuario_model');
-const { subirImagen, borrarImagen, sendEmail } = require('../tools/util');
+const { subirImagen, borrarImagen, enviarEmail } = require('../tools/util');
 const { verificaToken } = require('../middlewares/autenticacion');
 
 const app = express();
@@ -28,7 +29,6 @@ app.get('/persona', verificaToken, (req, res) => {
 app.post('/persona', function(req, res) {
     let id = mongoose.Types.ObjectId();
     let body = req.body;
-    console.log(body);
     let dato = new Dato({
         email: body.email,
         password: body.password === undefined ? undefined : bcrypt.hashSync(body.password, 10),
@@ -80,16 +80,16 @@ app.post('/persona', function(req, res) {
                     });
                 }
 
-                res.json({
-                    ok: true,
-                    persona: perdb,
-                })
-
                 /* envia email para verificar */
-                /* sendEmail(body.email, perdb._id, req.get('host'), req.protocol).then((est) => {
+                enviarEmail(body.email, perdb._id, req.get('host'), req.protocol).then((est) => {
+                    let token = jwt.sign({
+                        usuario: perdb
+                    }, process.env.SEED);
+
                     res.json({
                         ok: true,
                         persona: perdb,
+                        token
                     })
                 }).catch((err) => {
                     Dato.findOneAndRemove({ _id: datodb._id }, (err, eliminado) => {
@@ -112,7 +112,7 @@ app.post('/persona', function(req, res) {
                         error: 'Correo electronico invalido',
                         err
                     })
-                }) */
+                });
             });
         });
     }).catch((error) => {

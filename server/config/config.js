@@ -7,6 +7,9 @@ process.env.NODE_ENV = process.env.NODE_ENV || 'dev';
 /* SEED de autenticacion de JWT */
 process.env.SEED = process.env.SEED || 'seed-desarrollo';
 
+/* api key de sendgrid */
+process.env.SENDGRID_API_KEY = process.env.SENDGRID_API_KEY || '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'
+
 /* Base de Datos */
 let urlDB;
 

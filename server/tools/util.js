@@ -1,8 +1,10 @@
 const express = require('express');
 const fileUpload = require('express-fileupload');
-const nodemailer = require('nodemailer');
+const sgMail = require('@sendgrid/mail');
 const fs = require('fs');
 const path = require('path');
+
+sgMail.setApiKey(process.env.SENDGRID_API_KEY);
 
 const app = express();
 
@@ -63,36 +65,44 @@ let borrarImagen = (urlImage) => {
 
 }
 
-/* enviar email */
-var smtpTransport = nodemailer.createTransport({
-    service: 'gmail',
-    auth: {
-        user: 'llanoscarlos649@gmail.com',
-        pass: 'clr*1993'
-    }
-});
-
-async function sendEmail(correo, id, host, protocol) {
+/* sendgrid email */
+let enviarEmail = async(correo, id, host, protocol) => {
     let link = protocol + '://' + host + "/verify?id=" + id;
-
-    console.log(link);
-    mailOptions = {
-        from: 'llanoscarlos649@gmail.com',
+    const msg = {
         to: correo,
+        from: 'llanoscarlos649@gmail.com', // Use the email address or domain you verified above
         subject: "Por favor confirme su cuenta de correo electrónico",
+        text: 'and easy to do anywhere, even with Node.js',
         html: "Hola,<br> Haga clic en el enlace para verificar su correo electrónico.<br><a href=" + link + ">Verificar correo</a>"
-    }
+    };
 
-    const { err, response } = await smtpTransport.sendMail(mailOptions);
-    if (err) {
-        return err;
-    } else {
+    try {
+        const { err, result } = await sgMail.send(msg);
+
+        if (err) {
+            console.error('1>>>>\n ' + error);
+            if (error.response) {
+                console.error('2>>>>>\n ' + error.response.body);
+                return error;
+            }
+            return err
+        };
+        console.log(result);
         return true;
+
+    } catch (error) {
+        console.error('3>>>\n ' + error);
+
+        if (error.response) {
+            console.error('4>>>\n ' + error.response.body);
+            return error;
+        }
     }
 }
+
 
 module.exports = {
     subirImagen,
     borrarImagen,
-    sendEmail
+    enviarEmail
 }
