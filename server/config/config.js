@@ -1,4 +1,4 @@
-const fs = require('fs');
+require('dotenv').config();
 
 /*Puerto*/
 process.env.PORT = process.env.PORT || 3000;
@@ -10,16 +10,11 @@ process.env.NODE_ENV = process.env.NODE_ENV || 'dev';
 process.env.SEED = process.env.SEED || 'seed-desarrollo';
 
 /* api key de sendgrid */
-let sendgridapikey;
-fs.readFile('sendgrid_api_key.txt', 'utf-8', (err, data) => {
-    if (err) {
-        console.log('error al leer el archivo: ', err);
-    } else {
-        console.log(data);
-        sendgridapikey = data;
-    }
-});
-process.env.SENDGRID_API_KEY = process.env.SENDGRID_API_KEY || sendgridapikey;
+/* if (process.env.NODE_ENV === 'dev') {
+    require('dotenv').load();
+} */
+console.log(process.env.SENDGRID_API_KEY_DEV);
+process.env.SENDGRID_API_KEY = process.env.SENDGRID_API_KEY || process.env.SENDGRID_API_KEY_DEV;
 
 /* Base de Datos */
 let urlDB;

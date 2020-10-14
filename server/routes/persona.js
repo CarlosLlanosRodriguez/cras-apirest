@@ -26,7 +26,7 @@ app.get('/persona', /* verificaToken, */ (req, res) => {
     });
 })
 
-app.post('/persona', function(req, res) {
+app.post('/registro', function(req, res) {
     let id = mongoose.Types.ObjectId();
     let body = req.body;
     let dato = new Dato({
