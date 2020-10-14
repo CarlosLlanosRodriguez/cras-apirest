@@ -1,3 +1,5 @@
+const fs = require('fs');
+
 /*Puerto*/
 process.env.PORT = process.env.PORT || 3000;
 
@@ -8,7 +10,16 @@ process.env.NODE_ENV = process.env.NODE_ENV || 'dev';
 process.env.SEED = process.env.SEED || 'seed-desarrollo';
 
 /* api key de sendgrid */
-process.env.SENDGRID_API_KEY = process.env.SENDGRID_API_KEY || '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'
+let sendgridapikey;
+fs.readFile('sendgrid_api_key.txt', 'utf-8', (err, data) => {
+    if (err) {
+        console.log('error al leer el archivo: ', err);
+    } else {
+        console.log(data);
+        sendgridapikey = data;
+    }
+});
+process.env.SENDGRID_API_KEY = process.env.SENDGRID_API_KEY || sendgridapikey;
 
 /* Base de Datos */
 let urlDB;

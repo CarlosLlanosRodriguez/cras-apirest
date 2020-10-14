@@ -17,7 +17,7 @@ const app = express();
 app.use(fileUpload());
 
 
-app.get('/persona', verificaToken, (req, res) => {
+app.get('/persona', /* verificaToken, */ (req, res) => {
     Persona.find((err, doc) => {
         res.json({
             ok: true,

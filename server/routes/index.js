@@ -2,7 +2,7 @@ const express = require('express');
 
 const app = express();
 
-app.use(require('./persona'))
-app.use(require('./login'));
+app.use('/api', require('./login'));
+app.use('/api/persona', require('./persona'))
 
 module.exports = app;
