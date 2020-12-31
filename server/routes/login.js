@@ -18,33 +18,31 @@ app.post('/login', (req, res) => {
         if (err) {
             return res.status(500).json({
                 ok: false,
-                error: err
-
+                error: {
+                    msg: 'Error interno del servidor',
+                    err
+                }
             });
         }
 
         if (!DatoDB) {
-            if (err) {
-                return res.status(400).json({
-                    ok: false,
-                    error: {
-                        msg: '1Usuario o Contraseña incorrectos'
-                    }
+            return res.status(400).json({
+                ok: false,
+                error: {
+                    msg: 'Usuario o Contraseña incorrectos',
+                    err: null
+                }
 
-                });
-            }
+            });
         }
-
         if (!bcrypt.compareSync(body.password, DatoDB.password)) {
-            if (err) {
-                return res.status(400).json({
-                    ok: false,
-                    error: {
-                        msg: '2Usuario o Contraseña incorrectos'
-                    }
-
-                });
-            }
+            return res.status(400).json({
+                ok: false,
+                error: {
+                    msg: 'Usuario o Contraseña incorrectos',
+                    err: null
+                },
+            });
         }
 
         Persona.findOne(Persona._id = DatoDB.idper, (err, userDB) => {
@@ -53,11 +51,22 @@ app.post('/login', (req, res) => {
                 return res.status(500).json({
                     ok: false,
                     error: {
-                        msg: 'No se pudo recuperar el usuario'
+                        msg: 'Error interno del servidor',
+                        err
                     }
 
                 });
             }
+
+            /* if (userDB.estado === false) {
+                return res.status(400).json({
+                    ok: false,
+                    error: {
+                        msg: 'Su cuenta fue desabilitada temporalmente'
+                    }
+
+                });
+            } */
 
             let token = jwt.sign({
                 usuario: userDB

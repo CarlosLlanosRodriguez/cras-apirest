@@ -10,11 +10,11 @@ let Schema = mongoose.Schema;
 let personaSchema = new Schema({
     nombre: {
         type: String,
-        required: [true, 'El nombre es necesario']
+        required: [true, 'El nombre es requerido']
     },
     ap: {
         type: String,
-        required: [true, 'El apellido es necesario']
+        required: [true, 'El apellido es requerido']
     },
     am: {
         type: String,
@@ -28,21 +28,43 @@ let personaSchema = new Schema({
         type: String,
         required: false
     },
+    ci: {
+        type: String,
+        unique: true,
+        required: [true, 'El CI es necesario']
+    },
+    celular: {
+        type: Number,
+        required: [true, 'El numero de celular es necesario']
+    },
+    direccion: {
+        type: String,
+        default: null
+    },
+    fecha: { type: Date, default: Date.now },
     dato: {
         type: Schema.Types.ObjectId,
         //type: Dato.schema,
         ref: 'Dato'
     },
-    admin: {
+    administrador: {
         type: Administrador.schema,
         //ref: 'Administrador'
     },
-    user: {
+    usuario: {
         type: Usuario.schema,
         //ref: 'Usuario'
     }
 });
 
-personaSchema.plugin(uniqueValidator, { message: '{PATH} debe de ser único' })
+personaSchema.methods.toJSON = function() {
+    let modelData = this;
+    let modelDataObject = modelData.toObject();
+    delete modelDataObject.__v;
+
+    return modelDataObject
+}
+
+personaSchema.plugin(uniqueValidator, { message: '{PATH} ya registrado' })
 
 module.exports = mongoose.model('Persona', personaSchema);

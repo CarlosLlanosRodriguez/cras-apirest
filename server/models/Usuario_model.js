@@ -1,18 +1,9 @@
 const mongoose = require('mongoose')
-const uniqueValidator = require('mongoose-unique-validator');
+    //const uniqueValidator = require('mongoose-unique-validator');
 
 let Schema = mongoose.Schema;
 
 let usuarioSchema = new Schema({
-    ci: {
-        type: String,
-        unique: true,
-        required: [true, 'El CI es necesario']
-    },
-    direccion: {
-        type: String,
-        default: null
-    },
     isverificado: {
         type: Boolean,
         default: false
@@ -20,6 +11,6 @@ let usuarioSchema = new Schema({
 
 })
 
-usuarioSchema.plugin(uniqueValidator, { message: '{PATH} debe ser unico' })
+//usuarioSchema.plugin(uniqueValidator, { message: '{PATH} ya registrado' })
 
 module.exports = mongoose.model('Usuario', usuarioSchema)

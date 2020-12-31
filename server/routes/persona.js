@@ -17,120 +17,110 @@ const app = express();
 app.use(fileUpload());
 
 
-app.get('/persona', /* verificaToken, */ (req, res) => {
-    Persona.find((err, doc) => {
+app.get('/', verificaToken, async(req, res) => {
+    const usuario = await Persona.findById(req.usuario._id)
+        .populate({
+            path: 'dato',
+            select: { __v: 0, password: 0 },
+        });
+    res.json({
+        ok: true,
+        usuario
+    })
+});
+
+
+app.post('/registro', async(req, res) => {
+    let idusu = mongoose.Types.ObjectId();
+    let idDato = mongoose.Types.ObjectId();
+    let body = req.body;
+    let rutaImg = '';
+    let dato = new Dato({
+        _id: idDato,
+        email: body.email,
+        password: body.password === undefined ? undefined : bcrypt.hashSync(body.password, 5),
+        idper: idusu,
+    });
+
+    try {
+        rutaImg = await subirImagen(req.files, 'usuarios', idusu);
+        const datos = await dato.save();
+        let persona = new Persona({
+            _id: idusu,
+            nombre: body.nombre,
+            ap: body.ap,
+            am: body.am,
+            ci: body.ci,
+            celular: body.celular,
+            direccion: body.direccion === undefined ? null : body.direccion,
+            foto: rutaImg,
+            dato: idDato,
+            administrador: new Administrador(),
+            usuario: new Usuario()
+        });
+        const per = await persona.save();
+        const est = await enviarEmail(body.email, idusu, req.get('host'), req.protocol);
+
+        let token = jwt.sign({
+            usuario: per
+        }, process.env.SEED);
+
         res.json({
             ok: true,
-            lista: doc
-        })
-    });
-})
-
-app.post('/registro', function(req, res) {
-    let id = mongoose.Types.ObjectId();
-    let body = req.body;
-    let dato = new Dato({
-        email: body.email,
-        password: body.password === undefined ? undefined : bcrypt.hashSync(body.password, 10),
-        idper: id,
-    })
-
-    subirImagen(req.files, 'usuarios', id).then((rutaImg) => {
-        dato.save((err, datodb) => {
-            if (err) {
-                borrarImagen(rutaImg);
-                return res.status(400).json({
-                    ok: false,
-                    error: err
-
-                });
-            }
-
-            let usuario = new Usuario({
-                ci: body.ci,
-                direccion: body.direccion || null
-            })
-            let admin = new Administrador({
-                isadmin: body.isadmin || false
-            })
-
-            let persona = new Persona({
-                _id: id,
-                nombre: body.nombre,
-                ap: body.ap,
-                am: body.am,
-                dato: datodb,
-                foto: rutaImg,
-                admin: admin,
-                user: usuario
-            })
-            persona.save((err, perdb) => {
-                if (err) {
-                    Dato.findOneAndRemove({ _id: datodb._id }, (err, eliminado) => {
-                        if (err) {
-                            console.log("Error al eliminar");
-                        }
-                        console.log("Exito al eliminar " + eliminado);
-
-                    });
-                    borrarImagen(rutaImg);
-                    return res.status(400).json({
-                        ok: false,
-                        error: err
-                    });
-                }
-
-                /* envia email para verificar */
-                enviarEmail(body.email, perdb._id, req.get('host'), req.protocol).then((est) => {
-                    let token = jwt.sign({
-                        usuario: perdb
-                    }, process.env.SEED);
-
-                    res.json({
-                        ok: true,
-                        persona: perdb,
-                        token
-                    })
-                }).catch((err) => {
-                    Dato.findOneAndRemove({ _id: datodb._id }, (err, eliminado) => {
-                        if (err) {
-                            console.log("Error al eliminar");
-                        }
-                        console.log("Exito al eliminar " + eliminado);
-
-                    });
-                    Persona.findOneAndRemove({ _id: perdb._id }, (err, eliminado) => {
-                        if (err) {
-                            console.log("Error al eliminar");
-                        }
-                        console.log("Exito al eliminar " + eliminado);
-
-                    });
-                    borrarImagen(rutaImg);
-                    res.json({
-                        ok: false,
-                        error: 'Correo electronico invalido',
-                        err
-                    })
-                });
-            });
+            usuario: per,
+            token
         });
-    }).catch((error) => {
-        res.json(error);
-    });
+    } catch (err) {
+        await Dato.findOneAndRemove({ _id: idDato });
+        await Persona.findOneAndRemove({ _id: idusu });
+        borrarImagen(rutaImg);
+        return res.status(500).json({
+            ok: false,
+            error: {
+                msg: 'No se pudo guardar los datos',
+                err
+            }
+        });
+    }
+});
 
+app.put('/editar/email', verificaToken, async(req, res) => {
+    const idDato = req.usuario.dato
+    const idusu = req.usuario._id
+    console.log(idDato);
+    console.log(idusu);
+
+    try {
+        const newDato = await Dato.findByIdAndUpdate({ _id: idDato }, { email: req.body.email });
+        const est = await enviarEmail(req.body.email, idusu, req.get('host'), req.protocol);
+
+        res.json({
+            ok: true,
+            msg: 'Actualizado con éxito, se envio un enlace a su correo',
+        });
+
+    } catch (error) {
+        return res.status(500).json({
+            ok: false,
+            error: {
+                msg: 'No se pudo guardar los datos',
+                err: error
+            }
+        });
+    }
 })
 
 
 app.get('/verify', function(req, res) {
     console.log(req.protocol + ":/" + req.get('host'));
-    Persona.findById(req.query.id, {}, (err, perdb) => {
+    console.log(req.query.id);
+    Persona.findById({ _id: req.query.id }, (err, perdb) => {
         if (err) {
             console.log("El correo electrónico no está verificado");
             res.send("<h1>El correo electrónico no se pudo verificar</h1>");
         }
-        perdb.user.isverificado = true;
-        Persona.updateOne(perdb, (err, raw) => {
+        perdb.usuario.isverificado = true
+        Persona.findByIdAndUpdate(req.query.id, { 'usuario.isverificado': true }, (err, raw) => {
             if (err) {
                 console.log('error ' + err);
                 res.send("<h1>El correo electrónico no se pudo verificar</h1>");
@@ -141,74 +131,141 @@ app.get('/verify', function(req, res) {
     });
 });
 
-app.put('/persona/:id', verificaToken, (req, res) => {
-    let id = req.params.id;
-    let body = _.pick(req.body, ['nombre', 'ap', 'am' /* , 'foto' */ , 'ci', 'direccion', 'email']);
-
-    Persona.findByIdAndUpdate(id, { body, foto: '/dddd.jpg' }, { new: true, runValidators: true }, (err, perdb) => {
-        if (err) {
-            return res.status(400).json({
-                ok: false,
-                error: err
-            });
-        }
-        let usid = perdb.user._id;
-
-        perdb.user.ci = body.ci || perdb.user.ci
-        perdb.user.direccion = body.direccion || perdb.user.direccion
-
-        Persona.updateOne(perdb, (err, raw) => {
-            if (err) {
-                return res.status(400).json({
-                    ok: false,
-                    error: err
-                });
+/* actualizar datos personales */
+app.put('/editar', verificaToken, async(req, res) => {
+    let id = req.usuario._id;
+    let body = _.pick(req.body, ['nombre', 'ap', 'am', 'foto', 'direccion']);
+    let rutimg = 'usuarios/user-no-image.png';
+    console.log(id);
+    try {
+        const persona = await Persona.findById(id);
+        if (req.files != null) {
+            rutimg = await subirImagen(req.files, 'usuarios', id);
+            console.log('>>>> ' + rutimg);
+            if (persona.foto != 'usuarios/user-no-image.png') {
+                console.log('true');
+                borrarImagen(persona.foto);
             }
-        });
+            body.foto = rutimg;
+        }
+
+        actualizar = await Persona.findByIdAndUpdate({ _id: id }, body, { new: true, runValidators: true });
 
         res.json({
             ok: true,
-            persona: perdb
-        })
-
-    })
-
-})
-
-app.delete('/usuario', function(req, res) {
-    res.json('delete usuario')
-})
-
-/* async function sendEmail(correo, id, host, protocol) {
-    let link = protocol + '://' + host + "/verify?id=" + id;
-
-    console.log(link);
-    mailOptions = {
-        from: 'llanoscarlos649@gmail.com',
-        to: correo,
-        subject: "Por favor confirme su cuenta de correo electrónico",
-        html: "Hola,<br> Haga clic en el enlace para verificar su correo electrónico.<br><a href=" + link + ">Verificar correo</a>"
+            msg: 'Actualizado con éxito',
+        });
+    } catch (error) {
+        return res.status(500).json({
+            ok: false,
+            error: {
+                msg: 'No se pudo guardar los datos',
+                err: error
+            }
+        });
     }
-    console.log(mailOptions);
-    const { err, response } = await smtpTransport.sendMail(mailOptions);
-    if (err) {
-        console.log('no enviado');
-        return false;
-    } else {
-        console.log('enviado');
-        return true;
-    }
-} */
 
-
-async function getusu(id, body) {
-    //const us = await Persona.update({ user._id: usid }, body);
-    //const us = await Dato.findOne({ _id: '5f3d6b84e595381a5f1ce417' })
-    //const us = await Dato.update({ _id: '5f3d6b84e595381a5f1ce417' }, { body })
-
-    //const us = await Dato.findByIdAndUpdate('5f3d6b84e595381a5f1ce417', body /* { email: 'body.email' } */ , { new: true })
-    const us = await Usuario.findOne(Persona.user._id = '5f3d6b84e595381a5f1ce418')
-    console.log(us);
-}
+});
 
 module.exports = app;
+
+
+/*
+
+app.post('/registro', async (req, res) => {
+    let id = mongoose.Types.ObjectId();
+    let body = req.body;
+
+    let dato = new Dato({
+        email: body.email,
+        password: body.password === undefined ? undefined : bcrypt.hashSync(body.password, 5),
+        idper: id,
+    })
+
+    subirImagen(req.files, 'usuarios', id).then((rutaImg) => {
+        dato.save((err, datodb) => {
+            if (err) {
+                borrarImagen(rutaImg);
+                console.log('Dato');
+                return res.status(500).json({
+                    ok: false,
+                    error: {
+                        msg: 'No se pudo guardar los datos',
+                        err
+                    }
+
+                });
+            }
+
+            let persona = new Persona({
+                _id: id,
+                nombre: body.nombre,
+                ap: body.ap,
+                am: body.am,
+                ci: body.ci,
+                celular: body.celular,
+                direccion: body.direccion === undefined ? null : body.direccion,
+                foto: rutaImg,
+                dato: datodb,
+                administrador: new Administrador(),
+                usuario: new Usuario()
+            })
+            persona.save((err, perdb) => {
+                if (err) {
+                    Dato.findOneAndRemove({ _id: datodb._id }, (err, doc) => {});
+                    borrarImagen(rutaImg);
+                    return res.status(500).json({
+                        ok: false,
+                        error: {
+                            msg: 'No se pudo guardar los datos',
+                            err
+                        }
+                    });
+                }
+
+                enviarEmail(body.email, perdb._id, req.get('host'), req.protocol).then((est) => {
+                    Persona.findOne(Persona._id = id, (err, userDB) => {
+                        if (err) {
+                            return res.status(500).json({
+                                ok: false,
+                                error: {
+                                    msg: 'No se pudo recuperar el usuario',
+                                    err
+                                }
+
+                            });
+
+                        }
+                        let token = jwt.sign({
+                            usuario: userDB
+                        }, process.env.SEED);
+
+                        res.json({
+                            ok: true,
+                            usuario: userDB,
+                            token
+                        });
+                    });
+                }).catch((err) => {
+                    Dato.findOneAndRemove({ _id: datodb._id }, (err, doc) => {
+                        borrarImagen(rutaImg);
+                        Persona.findOneAndRemove({ _id: perdb._id }, (err, doc) => {});
+                    });
+                    return res.json({
+                        ok: false,
+                        error: {
+                            msg: 'Error al enviar correo',
+                            error: err
+                        },
+                    });
+                });
+            });
+        });
+    }).catch((error) => {
+        res.json(error);
+    });
+
+})
+
+
+*/

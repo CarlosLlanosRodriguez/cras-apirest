@@ -23,10 +23,11 @@ datoSchema.methods.toJSON = function() {
     let dato = this;
     let datoObject = dato.toObject();
     delete datoObject.password;
+    delete datoObject.__v;
 
     return datoObject
 }
 
-datoSchema.plugin(uniqueValidator, { message: '{PATH} debe de ser único' })
+datoSchema.plugin(uniqueValidator, { message: '{PATH} ya registrado' })
 
 module.exports = mongoose.model('Dato', datoSchema);

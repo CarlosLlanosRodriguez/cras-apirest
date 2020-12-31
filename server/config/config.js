@@ -10,10 +10,7 @@ process.env.NODE_ENV = process.env.NODE_ENV || 'dev';
 process.env.SEED = process.env.SEED || 'seed-desarrollo';
 
 /* api key de sendgrid */
-/* if (process.env.NODE_ENV === 'dev') {
-    require('dotenv').load();
-} */
-console.log(process.env.SENDGRID_API_KEY_DEV);
+//console.log(process.env.SENDGRID_API_KEY_DEV);
 process.env.SENDGRID_API_KEY = process.env.SENDGRID_API_KEY || process.env.SENDGRID_API_KEY_DEV;
 
 /* Base de Datos */
